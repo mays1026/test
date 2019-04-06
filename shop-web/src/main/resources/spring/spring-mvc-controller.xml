@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:mvc="http://www.springframework.org/schema/mvc"
+	   xsi:schemaLocation="http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/mvc   
+    	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+    <!-- 开启注解驱动 -->
+	<!-- 处理@ResponseBody 返回值转化为json格式  406错误 -->
+	<mvc:annotation-driven />    
+        
+	<!-- 日期转换器 -->
+    <mvc:annotation-driven conversion-service="conversionService"/>
+	<!-- 自定义的日期转换器-->
+	<bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+	    <property name="converters">
+	        <set>
+	            <bean class="org.fh.shop.admin.mays.util.DateUtils">
+	                <!-- 自定义日期格式 -->
+	                <property name="pattern" value="yyyy-MM-dd"/>
+	            </bean>
+	        </set>
+	    </property>
+	</bean>
+        
+	<!-- 扫面controller注解 -->
+	<context:component-scan base-package="org.fh.shop.admin.mays.web.action" />
+	<context:component-scan base-package="org.fh.shop.admin.mays.api" />
+
+	<!--
+        jsp视图解析器，对模型视图名称的解析，即在模型视图名称添加前后缀
+        如/view/welcome.jsp对应的视图名就是：welcome
+        这个类在视图解析器链中一定要定义在其他视图的后面，因为它始终会返回一个视图
+    -->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/view/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+    
+    <!-- 切面类 -->
+    <bean id="logAspect" class="org.fh.shop.admin.mays.aspect.LogsAspect"></bean>
+    <!-- 日志切面配置 -->
+    <!-- aop配置 -->
+	<aop:config>
+		<aop:aspect ref="logAspect">
+			<aop:pointcut expression="execution(* org.fh.shop.admin.mays.web.action..add*(..)) ||
+				execution(* org.fh.shop.admin.mays.web.action..delete*(..)) ||
+				execution(* org.fh.shop.admin.mays.web.action..update*(..)) ||
+				execution(* org.fh.shop.admin.mays.web.action..login(..))" id="pointcut"/>
+			<aop:around method="logAspect" pointcut-ref="pointcut"/>
+		</aop:aspect>
+	</aop:config>
+
+	<!-- 拦截器 -->
+	<!-- 自定义拦截器配置 -->
+	<mvc:interceptors>
+		<!--  使用bean定义一个Interceptor，直接定义在mvc:interceptors根下面的Interceptor将拦截所有的请求   -->
+		<!-- <bean class="com.bybo.aca.web.interceptor.Login"/> -->
+		<mvc:interceptor>
+			<!-- 进行拦截：/**表示拦截所有controller -->
+			<mvc:mapping path="/**" />
+			<!-- 不进行拦截 -->
+			<mvc:exclude-mapping path="/index.jsp"/>
+			<bean class="org.fh.shop.admin.mays.interception.LoginInterception"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<!--上传文件解析-->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!--文件的最大上传大小-->
+		<property name="maxUploadSize" value="10000000"/>
+	</bean>
+</beans>

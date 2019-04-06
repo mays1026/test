@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+例如namespace="me.gacl.mapping.userMapper"就是me.gacl.mapping(包名)+userMapper(userMapper.xml文件去除后缀)
+ -->
+<mapper namespace="org.fh.shop.admin.mays.dao.brand.BrandDao">
+	<sql id="buildWhereSql">
+		<where>
+			<if test="brandName != null and brandName != ''">
+				and brandName like concat("%", #{brandName}, "%")
+			</if>
+			<if test="minCreateTime != null">
+				and createTime >= #{minCreateTime}
+			</if>
+			<if test="maxCreateTime != null">
+				and createTime &lt;=#{maxCreateTime}
+			</if>
+			<if test="minUpdateTime != null">
+				and createTime >= #{minUpdateTime}
+			</if>
+			<if test="maxUpdateTime != null">
+				and createTime &lt;=#{maxUpdateTime}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 查询总条数 -->
+	<select id="countListSize" parameterType="brandInfo" resultType="long">
+  		select count(*) from t_brand
+  		<include refid="buildWhereSql"></include>
+  	</select>
+  	
+  	<!-- 查询分页列表 -->
+  	<select id="findBrandList" parameterType="brandInfo" resultType="brandInfo">
+  		select t.* from (
+	    	select id,brandName,createTime,updateTime from t_brand 
+	    	<include refid="buildWhereSql"></include> ) t
+    	limit #{startPos},#{pageSize}
+  	</select>
+  	
+	<!-- 新增 -->
+  	<insert id="addBrand" parameterType="brandInfo">
+  		insert into t_brand (brandName,createTime,updateTime) values(#{brandName},#{createTime},#{updateTime})
+  	</insert>
+  	
+  	<!-- 修改 -->
+  	<update id="updateBrand" parameterType="brandInfo">
+  		update t_brand set brandName=#{brandName},updateTime=#{updateTime} where id=#{id}
+  	</update>
+  	
+  	<!-- 删除 -->
+  	<delete id="deleteAllData" parameterType="java.util.List">
+  		delete from t_brand where id in 
+  		<foreach collection="list"  item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+  	</delete>
+  	
+  	<!-- 下拉框 -->
+  	<select id="initBrandList" resultType="brandInfo">
+  		select id,brandName from t_brand
+  	</select>
+
+</mapper>

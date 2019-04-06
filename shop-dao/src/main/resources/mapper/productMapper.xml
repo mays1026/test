@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+例如namespace="me.gacl.mapping.userMapper"就是me.gacl.mapping(包名)+userMapper(userMapper.xml文件去除后缀)
+ -->
+<mapper namespace="org.fh.shop.admin.mays.dao.product.ProductDao">
+    <resultMap id="productMap" type="productInfo">
+        <id column="id" property="id"/>
+        <result column="productName" property="productName"/>
+        <result column="costPrice" property="costPrice"/>
+        <result column="marketPrice" property="marketPrice"/>
+        <result column="repertory" property="repertory"/>
+        <result column="recommend" property="recommend"/>
+        <result column="createTime" property="createTime"/>
+        <result column="updateTime" property="updateTime"/>
+        <result column="imagePath" property="imagePath"/>
+        <!-- pojo类中的pojo对象属性的两种方式 -->
+        <result column="brandId" property="brandId.id"/>
+        <result column="shopId" property="shopId.id"/>
+        <!-- <result column="brandName" property="brandId.brandName"/>
+        <result column="storeName" property="shopId.storeName"/> -->
+        <association property="brandId" javaType="brandInfo">
+            <result column="brandName" property="brandName"/>
+        </association>
+        <association property="shopId" javaType="shopInfo">
+            <result column="storeName" property="storeName"/>
+        </association>
+    </resultMap>
+
+    <sql id="buildWhereSql">
+        <where>
+            <if test="productName != null and productName != ''">
+                and productName like concat("%", #{productName}, "%")
+            </if>
+            <if test="brandId.id != null and brandId.id >= 0">
+                and brandId = #{brandId.id}
+            </if>
+            <if test="shopId.id != null and shopId.id >= 0">
+                and shopId = #{shopId.id}
+            </if>
+            <if test="recommend != null and recommend != -1">
+                and recommend = #{recommend}
+            </if>
+            <if test="minCostPrice != null and minCostPrice != ''">
+                and costPrice >= #{minCostPrice}
+            </if>
+            <if test="maxCostPrice != null and maxCostPrice != ''">
+                and costPrice &lt;= #{maxCostPrice}
+            </if>
+            <if test="minMarketPrice != null and minMarketPrice != ''">
+                and marketPrice >= #{minMarketPrice}
+            </if>
+            <if test="maxMarketPrice != null and maxMarketPrice != ''">
+                and marketPrice &lt;= #{maxMarketPrice}
+            </if>
+            <if test="minRepertory != null and minRepertory != ''">
+                and repertory >= #{minRepertory}
+            </if>
+            <if test="maxRepertory != null and maxRepertory != ''">
+                and repertory &lt;= #{maxRepertory}
+            </if>
+            <if test="minCreateTime != null and minCreateTime != ''">
+                and p.createTime >= #{minCreateTime}
+            </if>
+            <if test="maxCreateTime != null and maxCreateTime != ''">
+                and p.createTime &lt;= #{maxCostPrice}
+            </if>
+            <if test="minUpdateTime != null and minUpdateTime != ''">
+                and p.updateTime >= #{minUpdateTime}
+            </if>
+            <if test="maxUpdateTime != null and maxUpdateTime != ''">
+                and p.updateTime &lt;= #{maxUpdateTime}
+            </if>
+        </where>
+
+    </sql>
+
+    <!-- 查询总条数 -->
+    <select id="countListSize" parameterType="productInfo" resultType="long">
+        select count(*) from t_product p
+        <include refid="buildWhereSql"></include>
+    </select>
+
+    <!-- 查询导出数据列表 -->
+    <select id="findExportData" parameterType="productInfo" resultMap="productMap">
+        select
+        p.id,p.productName,b.brandName,s.storeName,p.costPrice,p.marketPrice,p.repertory,p.recommend,p.createTime,p.updateTime
+        from t_product p left join t_brand b on p.brandId=b.id
+        left join t_shop s on p.shopId=s.id
+        <include refid="buildWhereSql"></include>
+    </select>
+
+    <!-- 查询分页列表 -->
+    <select id="findProductList" parameterType="productInfo" resultMap="productMap">
+        select t.* from (
+        select
+        p.id,p.productName,b.brandName,s.storeName,p.costPrice,p.marketPrice,p.repertory,p.recommend,p.createTime,p.updateTime,p.imagePath
+        from t_product p left join t_brand b on p.brandId=b.id
+        left join t_shop s on p.shopId=s.id
+        <include refid="buildWhereSql"></include>
+        <if test="filed != null and filed != ''">
+            order by ${filed} ${orderby}
+        </if>
+        <if test="filed == null or filed == ''">
+            order by id desc
+        </if>) t
+        limit #{startPos},#{pageSize}
+    </select>
+
+    <!-- 删除 -->
+    <delete id="deleteAllData" parameterType="list">
+        delete from t_product where id in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- 新增 -->
+    <insert id="addProduct" parameterType="productInfo">
+        <selectKey resultType="int" keyColumn="id" keyProperty="id" order="AFTER">
+            SELECT LAST_INSERT_ID();
+        </selectKey>
+
+        insert into t_product
+        (productName,brandId,shopId,costPrice,marketPrice,repertory,recommend,createTime,updateTime,imagePath)
+        values(#{productName},#{brandId.id},#{shopId.id},#{costPrice},#{marketPrice},#{repertory},#{recommend},#{createTime},#{updateTime},#{imagePath})
+    </insert>
+
+    <!-- 修改 -->
+    <update id="updateProduct" parameterType="productInfo">
+  		update t_product
+  			set productName=#{productName},brandId=#{brandId.id},shopId=#{shopId.id},costPrice=#{costPrice},marketPrice=#{marketPrice},repertory=#{repertory},recommend=#{recommend},updateTime=#{updateTime},imagePath=#{imagePath}
+  		where id=#{id}
+  	</update>
+
+    <!-- 回显 -->
+    <select id="toupdateProduct" parameterType="int" resultMap="productMap">
+  		select p.id,p.productName,b.id brandId,s.id shopId,p.costPrice,p.marketPrice,p.repertory,p.recommend,imagePath
+  				from t_product p left join t_brand b on p.brandId=b.id
+  					left join t_shop s on p.shopId=s.id where p.id=#{value}
+  	</select>
+
+    <!-- 按品牌导出数据列表 -->
+    <select id="findExportByBrandData" parameterType="productInfo" resultMap="productMap">
+        select p.id,p.productName,b.id
+        brandId,b.brandName,p.costPrice,p.marketPrice,p.repertory,p.recommend,p.createTime,p.updateTime
+        from t_product p left join t_brand b on p.brandId=b.id
+        <include refid="buildWhereSql"></include>
+    </select>
+
+
+    <!-- ajax的全部查询 -->
+    <select id="ajaxFindProductList" parameterType="productInfo" resultMap="productMap">
+		select p.id,p.productName,b.brandName,s.storeName,p.costPrice,p.marketPrice,p.repertory,p.recommend,p.createTime,p.updateTime,p.imagePath
+		from t_product p left join t_brand b on p.brandId=b.id
+		left join t_shop s on p.shopId=s.id
+	</select>
+
+    <delete id="deleteProduct" parameterType="int">
+        delete from t_product where id=#{id}
+    </delete>
+
+
+    <select id="findProductListApi" resultMap="productMap">
+        select
+        p.id,p.productName,b.brandName,s.storeName,p.costPrice,p.marketPrice,p.repertory,p.recommend,p.createTime,p.updateTime,p.imagePath
+        from t_product p left join t_brand b on p.brandId=b.id
+        left join t_shop s on p.shopId=s.id
+    </select>
+
+
+</mapper>

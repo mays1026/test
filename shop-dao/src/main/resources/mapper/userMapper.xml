@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+例如namespace="me.gacl.mapping.userMapper"就是me.gacl.mapping(包名)+userMapper(userMapper.xml文件去除后缀)
+ -->
+<mapper namespace="org.fh.shop.admin.mays.dao.user.IUserDao">
+    <!-- 条件 -->
+    <sql id="builderUserWhere">
+        <where>
+            <if test="userName != null and userName != ''">
+                and tu.userNmae like connect("%", #{userName}, "%")
+            </if>
+            <if test="deptList != null">
+                and tu.deptId in
+                <foreach collection="deptList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 数据库字段 -->
+    <sql id="field">
+        tu.id,tu.stauts,tu.userName,tu.userPassword,tu.salt,tu.loginDate,tu.loginCount,tu.errorLoginDate,tu.errorLoginCount,tu.userRealName,tu.birthday,tu.sex,tu.salary,tu.deptId,tu.imagePath
+    </sql>
+
+    <!-- 登录 -->
+    <select id="login" parameterType="userInfo" resultType="userInfo">
+        select <include refid="field"></include> from t_user tu where userName=#{userName}
+    </select>
+
+    <!-- 添加 -->
+    <insert id="addUser" parameterType="userInfo">
+		insert into t_user (stauts,userName,userPassword,salt,loginCount,userRealName,birthday,sex,salary,deptId,imagePath)
+		 values (0,#{userName},#{userPassword},#{salt},#{loginCount},#{userRealName},#{birthday},#{sex},#{salary},#{deptId},#{imagePath});
+	</insert>
+
+    <!-- 登陆成功时：
+        修改登录时间，次数，错误时间，错误次数 -->
+    <update id="updateUserLoginDate" parameterType="userInfo">
+        update t_user set loginDate=#{loginDate},loginCount=#{loginCount},errorLoginDate=#{errorLoginDate},errorLoginCount=#{errorLoginCount}
+         where id=#{id}
+    </update>
+
+    <!-- 密码错误时 更新错误次数，错误时间 -->
+    <update id="updateUserWhereLoginError" parameterType="userInfo">
+        update t_user set errorLoginDate=#{errorLoginDate},errorLoginCount=#{errorLoginCount},stauts=#{stauts} where id=#{id}
+    </update>
+
+    <!-- 计算符合条件的个数 -->
+    <select id="countUserListSize" parameterType="userInfo" resultType="long">
+        select count(*) from t_user tu
+        <include refid="builderUserWhere"></include>
+    </select>
+
+    <!-- 查询 -->
+    <select id="findUserList" parameterType="userInfo" resultType="userInfo">
+        select <include refid="field"></include>,td.industryTitle from t_user tu left join t_dept td on tu.deptId =
+        td.id
+        <include refid="builderUserWhere"></include>
+    </select>
+
+    <!-- 解锁用户 -->
+    <update id="unlockUser" parameterType="int">
+        update t_user set stauts=0,errorLoginCount=0 where id = #{id}
+    </update>
+
+    <!-- 当删除部门时，删除员工 -->
+    <delete id="deleteUserInfoByDept" parameterType="list">
+        delete from t_user where deptId in
+        <foreach collection="list" open="(" separator="," close=")" item="item">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- 删除员工 -->
+    <delete id="deleteAllUserInfo" parameterType="list">
+        delete from t_user where id in
+        <foreach collection="list" open="(" separator="," close=")" item="item">
+            #{item}
+        </foreach>
+    </delete>
+
+    <!-- 修改用户 -->
+    <update id="updateUserInfo" parameterType="userInfo">
+        update t_user set  userName=#{userName},userPassword=#{userPassword},salt=#{salt},userRealName=#{userRealName},birthday=#{birthday},sex=#{sex},salary=#{salary},deptId=#{deptId},imagePath=#{imagePath} where id=#{id}
+    </update>
+
+    <!-- 批量换部门 -->
+    <update id="updateUserDept" parameterType="userInfo">
+        update t_user set deptId = #{deptId} where id in
+        <foreach collection="deptList" open="(" separator="," close=")" item="item">
+            #{item}
+        </foreach> 
+    </update>
+    
+    <select id="findUserChidenWhereId" parameterType="int" resultType="userInfo">
+        select * from t_user where deptId = #{id};
+    </select>
+
+    <select id="findImagePathByUserId" parameterType="list" resultType="string">
+        select imagePath from t_user where id in
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    
+</mapper>

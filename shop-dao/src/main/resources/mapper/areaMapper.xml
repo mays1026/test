@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+例如namespace="me.gacl.mapping.userMapper"就是me.gacl.mapping(包名)+userMapper(userMapper.xml文件去除后缀)
+ -->
+<mapper namespace="org.fh.shop.admin.mays.dao.area.IAreaDao">
+	
+	<select id="initAreaList" resultType="org.fh.shop.admin.mays.model.area.AreaInfo">
+		select * from t_area;
+	</select>
+
+	<insert id="addAreaInfo" parameterType="areaInfo">
+		<selectKey resultType="int" keyColumn="id" keyProperty="id" order="AFTER">
+			SELECT LAST_INSERT_ID();
+		</selectKey>
+		insert into t_area (areaname, parentid) values (#{areaname}, #{parentid});
+	</insert>
+
+	<delete id="deleteAreaById" parameterType="int">
+		delete from t_area where id = #{id}
+	</delete>
+
+	<update id="updateAreaData" parameterType="areaInfo">
+		update t_area set areaname = #{areaname} where id = #{id}
+	</update>
+</mapper>

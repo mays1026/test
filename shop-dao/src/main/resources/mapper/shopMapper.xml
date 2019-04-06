@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+例如namespace="me.gacl.mapping.userMapper"就是me.gacl.mapping(包名)+userMapper(userMapper.xml文件去除后缀)
+ -->
+<mapper namespace="org.fh.shop.admin.mays.dao.shop.ShopDao">
+	<sql id="buildWhereSql">
+		<where>
+			<if test="storeName != null and storeName !=''">
+				and storeName like concat('%', #{storeName}, '%')
+			</if>
+			<if test="companyName != null and companyName !=''">
+				and companyName like concat('%', #{companyName}, '%')
+			</if>
+			<if test="storeStatus != null and storeStatus != -1">
+				and storeStatus = #{storeStatus}
+			</if>
+			<if test="minCreateTime != null">
+				and createTime >= #{minCreateTime}
+			</if>
+			<if test="maxCreateTime != null">
+				and createTime &lt;= #{minCreateTime}
+			</if>
+			<if test="minCloseTime != null">
+				and closeTime >= #{minCreateTime}
+			</if>
+			<if test="maxCloseTime != null">
+				and closeTime &lt;= #{minCreateTime}
+			</if>
+		</where>
+	</sql>
+
+  	<select id="countListSize" parameterType="shopInfo" resultType="long">
+  		select count(*) from t_shop
+  		<include refid="buildWhereSql"></include>
+  	</select>
+  	
+  	<!-- 查询分页列表 -->
+  	<select id="findShopList" parameterType="shopInfo" resultType="shopInfo">
+  		select t.* from (
+  			select id,storeName,companyName,storeStatus,createTime,closeTime from t_shop 
+  		<include refid="buildWhereSql"></include>
+  		<if test="filed != null and filed != ''">
+  			order by ${filed} ${orderby}
+  		</if>
+  		<if test="filed == null or filed == ''">
+  			order by id desc
+  		</if>) t
+  		limit #{startPos},#{pageSize}
+  	</select>
+  	<!-- 新曾 -->
+  	<insert id="addShop" parameterType="shopInfo">
+  		insert into t_shop (storeName,companyName,storeStatus,createTime,closeTime)
+  		values(#{storeName},#{companyName},#{storeStatus},#{createTime},#{closeTime})
+  	</insert>
+  	
+  	<!-- 批量删除 -->
+  	<delete id="deleteAllData" parameterType="java.util.List">
+  		delete from t_shop where id in
+  		<foreach collection="list"  item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+  	</delete>
+  	<!-- 會先 -->
+  	<select id="toUpdateShop" parameterType="int" resultType="shopInfo">
+  		select id,storeName,companyName,storeStatus,closeTime from t_shop where id=#{id}
+  	</select>
+  	<!-- 修改 -->
+  	<update id="updataShop" parameterType="shopInfo" >
+  		update t_shop set storeName=#{storeName},companyName=#{companyName},storeStatus=#{storeStatus},closeTime=#{closeTime} where id=#{id}
+  	</update>
+  	
+  	<!-- 下拉框 -->
+  	<select id="initShopList" resultType="shopInfo">
+  		select id,storeName from t_shop 
+  	</select>
+</mapper>

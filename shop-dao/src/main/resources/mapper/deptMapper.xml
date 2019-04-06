@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 为这个mapper指定一个唯一的namespace，namespace的值习惯上设置成包名+sql映射文件名，这样就能够保证namespace的值是唯一的
+例如namespace="me.gacl.mapping.userMapper"就是me.gacl.mapping(包名)+userMapper(userMapper.xml文件去除后缀)
+ -->
+<mapper namespace="org.fh.shop.admin.mays.dao.dept.IDeptDao">
+
+    <sql id="buildSqlWhere">
+        <where>
+            <if test="industryTitle != null and industryTitle != ''">
+                and industryTitle like connect("%", #{industryTitle}, "%")
+            </if>
+            <if test="pid != null and pid != ''">
+                and pid = #{pid}
+            </if>
+        </where>
+    </sql>
+
+    <select id="countDeptList" parameterType="deptInfo" resultType="long">
+        select count(*) from t_dept
+        <include refid="buildSqlWhere"></include>
+    </select>
+
+    <select id="findDeptList" parameterType="deptInfo" resultType="deptInfo">
+        select t.* from (
+        select id,industryTitle,pid,remark from t_dept
+        <include refid="buildSqlWhere"></include>
+        ) t
+        limit #{startPos},#{pageSize}
+    </select>
+
+    <select id="initDeptList" resultType="deptInfo">
+        select * from t_dept;
+    </select>
+
+    <insert id="addDeptInfo" parameterType="deptInfo">
+        <selectKey resultType="int" keyColumn="id" keyProperty="id" order="AFTER">
+            SELECT LAST_INSERT_ID();
+        </selectKey>
+        INSERT INTO t_dept ( industryTitle, pid, remark )
+        VALUES
+        (#{industryTitle},#{pid},#{remark});
+    </insert>
+    <!-- 删除节点 -->
+    <delete id="deleteDeptInfo" parameterType="list">
+        delete from t_dept where id in
+        <foreach collection="list" item="item" open="(" close=")" separator=",">
+            #{item}
+        </foreach>
+    </delete>
+    <!-- 修改 -->
+    <update id="updateDeptInfo" parameterType="deptInfo">
+        update t_dept set industryTitle = #{industryTitle},remark = #{remark} where id = #{id};
+    </update>
+
+    <select id="findDeptChidenWhereId" parameterType="int" resultType="deptInfo">
+        select * from t_dept where pid = #{id};
+    </select>
+    
+</mapper>
